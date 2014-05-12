@@ -26,7 +26,7 @@ def balance(chars: List[Char]): Boolean = {
     }
     balanced(chars, "")
   }                                               //> balance: (chars: List[Char])Boolean
- balance("(a(b)dc)".toList)                       //> res0: Boolean = true
+ balance("(ab)dc)".toList)                        //> res0: Boolean = 
  	       
 //	  def balanced(chars: List[Char], open: Int): Boolean = {
 //	    if (chars.isEmpty) open == 0

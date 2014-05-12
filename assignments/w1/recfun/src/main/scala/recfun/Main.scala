@@ -48,7 +48,7 @@ object Main {
    * Exercise 3
    */
   def countChange(money: Int, coins: List[Int]): Int = {
-    val validChange = 1
+    val validChange = 1 
     val invalidChange = 0
     def correctChange(balance: Int) = balance == 0
     def excessChange(balance: Int) = balance < 0
