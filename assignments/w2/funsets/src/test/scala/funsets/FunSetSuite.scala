@@ -112,7 +112,6 @@ class FunSetSuite extends FunSuite {
   test("intersect contains all elements") {
     new TestSets {
       val s = intersect(s1, s1)
-      printSet(s)
       assert(contains(s, 1), "intersect 1")
       assert(!contains(s, 2), "intersect 2")
       assert(!contains(s, 3), "intersect 3")
@@ -120,21 +119,47 @@ class FunSetSuite extends FunSuite {
   }
 
   test("filter with predicate") {
-    new TestSets {
-      
-
-      val filtered = filter(allUnion, (p: Int) => p > 1)
+    new TestSets { 
+      val filtered = filter(allUnion, (p: Int) => (p > 1) && (p < 3))
       assert(!contains(filtered, 1), "filter 1")
       assert(contains(filtered, 2), "filter 2")
-      assert(contains(filtered, 3), "filter 3")
+      assert(!contains(filtered, 3), "filter 3")
     }
   }
   
   test("forAll") {
     new TestSets {
-      printSet(allUnion)
     	assert(forall(allUnion, (p: Int) => p > 0), "expected match all")
     	assert(!forall(allUnion, (p: Int) => p > 1), "expected match false")
+    	assert(!forall(allUnion, (p: Int) => p < 3), "expected match false")
+    	val includeOuterNeg = union(singletonSet(-1001), allUnion)
+    	assert(forall(includeOuterNeg, (p: Int) => p > 0), "ignore outer negative bounds")
+    	val includeOuterPos = union(singletonSet(1001), allUnion)
+    	assert(forall(includeOuterPos, (p: Int) => p <= 3), "ignore outer postive bound")
     }
   }
+
+    test("exists with predicate") {
+    new TestSets { 
+      assert(exists(singletonSet(-1), (p: Int) => p < 0), "exists negative")
+      assert(!exists(singletonSet(1001), (p: Int) => p == 1001), "non exists positive bound")
+      assert(!exists(singletonSet(-1001), (p: Int) => p == -1001), "non exists negative bound")
+      assert(exists(allUnion, (p: Int) => p == 1), "exists first")
+      assert(exists(allUnion, (p: Int) => p == 3), "exists last")
+      assert(exists(allUnion, (p: Int) => p > 0), "exists all")
+      assert(!exists(allUnion, (p: Int) => p < 0), "non existant first")
+    }
+  }
+    
+    test("map set") {
+    new TestSets { 
+      def double = (x: Int) => x * 2
+      assert(contains(map(allUnion, double), 2), "contains transformed second element")
+      assert(contains(map(allUnion, double), 4), "contains transformed second element")
+      assert(contains(map(allUnion, double), 6), "contains transformed second element")
+      assert(!contains(map(allUnion, double), 1), "not contains transformed first element")
+      assert(!contains(map(allUnion, double), 3), "not contains transformed last element")
+    }
+  }
+
 }
