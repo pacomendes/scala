@@ -10,6 +10,7 @@ class Tweet(val user: String, val text: String, val retweets: Int) {
   override def toString: String =
     "User: " + user + "\n" +
     "Text: " + text + " [" + retweets + "]"
+  def moreRetweets(that: Tweet) = this.retweets >= that.retweets
 }
 
 /**
@@ -42,7 +43,7 @@ abstract class TweetSet {
    * Question: Can we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def filter(p: Tweet => Boolean): TweetSet = ???
+  def filter(p: Tweet => Boolean): TweetSet = filterAcc(p, new Empty)
 
   /**
    * This is a helper method for `filter` that propagetes the accumulated tweets.
@@ -55,7 +56,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-   def union(that: TweetSet): TweetSet = ???
+   def union(that: TweetSet): TweetSet = filterAcc(p => true, that)
 
   /**
    * Returns the tweet from this set which has the greatest retweet count.
@@ -66,7 +67,7 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def mostRetweeted: Tweet = ???
+  def mostRetweeted: Tweet
 
   /**
    * Returns a list containing all tweets of this set, sorted by retweet count
@@ -77,7 +78,16 @@ abstract class TweetSet {
    * Question: Should we implment this method here, or should it remain abstract
    * and be implemented in the subclasses?
    */
-  def descendingByRetweet: TweetList = ???
+  def descendingByRetweet: TweetList = {
+     def descAcc(acc: TweetList, remaining: TweetSet): TweetList = {
+          val mostTweeted = remaining.mostRetweeted
+          if (mostTweeted.retweets > 0)
+        	  descAcc(new Cons(mostTweeted, acc), remaining.remove(mostTweeted))
+          else
+            acc.reverse
+    }
+    descAcc(Nil, this)
+  }
 
 
   /**
@@ -106,13 +116,14 @@ abstract class TweetSet {
    * This method takes a function and applies it to every element in the set.
    */
   def foreach(f: Tweet => Unit): Unit
+  
 }
 
 class Empty extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
-
-
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = acc
+  
+  def mostRetweeted: Tweet = new Tweet("","",-1) //throw new NoSuchElementException
   /**
    * The following methods are already implemented
    */
@@ -128,8 +139,25 @@ class Empty extends TweetSet {
 
 class NonEmpty(elem: Tweet, left: TweetSet, right: TweetSet) extends TweetSet {
 
-  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = ???
+  def filterAcc(p: Tweet => Boolean, acc: TweetSet): TweetSet = {
+    if (p(elem)) {
+      right.filterAcc(p, left.filterAcc(p, acc.incl(elem)))
+    } else {
+      right.filterAcc(p, left.filterAcc(p, acc))
+    }
+  }
 
+  def mostRetweeted: Tweet = {
+    val leftMost = left.mostRetweeted
+    val rightMost = right.mostRetweeted
+    
+    if ((elem moreRetweets leftMost) && (elem moreRetweets rightMost )) {
+      elem
+    } else if ((leftMost moreRetweets elem) && (leftMost moreRetweets rightMost)) {
+      leftMost
+    } else rightMost
+  }
+  
 
   /**
    * The following methods are already implemented
@@ -167,6 +195,13 @@ trait TweetList {
       f(head)
       tail.foreach(f)
     }
+  def reverse: TweetList = {
+    def reverseAcc(acc: TweetList, remain: TweetList): TweetList = {
+      if (remain.isEmpty) acc
+      else reverseAcc(new Cons(remain.head, acc), remain.tail)
+    }
+    reverseAcc(Nil, this)
+  }
 }
 
 object Nil extends TweetList {
@@ -184,14 +219,14 @@ object GoogleVsApple {
   val google = List("android", "Android", "galaxy", "Galaxy", "nexus", "Nexus")
   val apple = List("ios", "iOS", "iphone", "iPhone", "ipad", "iPad")
 
-  lazy val googleTweets: TweetSet = ???
-  lazy val appleTweets: TweetSet = ???
+  lazy val googleTweets: TweetSet = allTweets.filter(t => google.exists(keyword => t.text.contains(keyword)))
+  lazy val appleTweets: TweetSet = allTweets.filter(t => apple.exists(keyword => t.text.contains(keyword)))
 
   /**
    * A list of all tweets mentioning a keyword from either apple or google,
    * sorted by the number of retweets.
    */
-  lazy val trending: TweetList = ???
+  lazy val trending: TweetList = (googleTweets union appleTweets) descendingByRetweet
 }
 
 object Main extends App {
